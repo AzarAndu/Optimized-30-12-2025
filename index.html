@@ -14,8 +14,8 @@
 }
 body{font-family:Arial;margin:16px;background:var(--bg);color:var(--text);}
 body.dark{background:var(--dark-bg);color:var(--dark-text);}
-h2{margin:0 0 8px;font-size:28px}
-.topbar{display:flex;gap:8px;flex-wrap:nowrap;overflow-x:auto;margin-bottom:10px}
+h2{margin:0 0 10px;font-size:26px}
+.topbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
 .btn{padding:8px 12px;border:none;border-radius:6px;cursor:pointer}
 .btn-primary{background:var(--primary);color:#fff}
 .btn-secondary{background:#e5e7eb}
@@ -27,10 +27,10 @@ th{background:#e6e9f0}
 body.dark table{background:var(--dark-card)}
 body.dark th{background:#111827;color:var(--dark-text)}
 .pagination{margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.highlight{background:#ffeaa7!important}
-.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:9999}
-.modal{background:#fff;padding:14px;border-radius:10px;width:94%;max-width:500px}
-#qr-reader{width:100%;height:300px}
+.highlight{background:#ffeaa7!important;font-weight:bold}
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:9999}
+.modal{background:#fff;padding:14px;border-radius:10px;width:95%;max-width:400px}
+#qr-reader{width:100%;height:220px}
 </style>
 </head>
 
@@ -46,7 +46,7 @@ body.dark th{background:#111827;color:var(--dark-text)}
   <label>Compact <input type="checkbox" id="compactToggle"></label>
 </div>
 
-<input id="search" placeholder="Search part / description / category / qty">
+<input id="search" placeholder="Search item / part / description / category / qty">
 
 <table>
 <thead>
@@ -65,7 +65,7 @@ body.dark th{background:#111827;color:var(--dark-text)}
   <button id="jumpBtn" class="btn btn-secondary">Go</button>
 </div>
 
-<!-- SCANNER MODAL -->
+<!-- SCANNER -->
 <div id="qrBackdrop" class="modal-backdrop">
   <div class="modal">
     <h3>Scan Code</h3>
@@ -73,6 +73,11 @@ body.dark th{background:#111827;color:var(--dark-text)}
     <button id="qrClose" class="btn btn-secondary">Close</button>
   </div>
 </div>
+
+<!-- LOUD SUCCESS SOUND -->
+<audio id="beep" preload="auto">
+  <source src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg">
+</audio>
 
 <script>
 /* ===== DOM ===== */
@@ -93,6 +98,7 @@ const compactToggle = document.getElementById("compactToggle");
 
 const qrBackdrop = document.getElementById("qrBackdrop");
 const qrClose = document.getElementById("qrClose");
+const beep = document.getElementById("beep");
 
 /* ===== CONFIG ===== */
 const URL = "https://sheetdb.io/api/v1/bvdsyfvkla1lv";
@@ -152,7 +158,7 @@ function render(){
   const view = list.slice(start, start+perPage);
 
   tbody.innerHTML = view.map((r,i)=>`
-    <tr class="${highlightValue && (r["part no"]||"").includes(highlightValue) ? "highlight":""}">
+    <tr class="${highlightValue && r._s.includes(highlightValue.toLowerCase()) ? "highlight":""}">
       <td>${start+i+1}</td>
       <td>${r["item no"]||""}</td>
       <td>${r["part no"]||""}</td>
@@ -165,8 +171,17 @@ function render(){
   pageInfo.textContent = `Page ${page} of ${pages} (${list.length})`;
 }
 
-/* ===== EVENTS ===== */
-search.oninput = ()=>{ page=1; render(); };
+/* ===== SEARCH (DEBOUNCED) ===== */
+let searchTimer;
+search.oninput = ()=>{
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(()=>{
+    page = 1;
+    render();
+  }, 200);
+};
+
+/* ===== PAGINATION ===== */
 prevBtn.onclick = ()=>{ if(page>1){ page--; render(); }};
 nextBtn.onclick = ()=>{ page++; render(); };
 jumpBtn.onclick = ()=>{
@@ -191,15 +206,30 @@ btnExport.onclick = ()=>{
 btnScan.onclick = ()=>{
   qrBackdrop.style.display="flex";
   scanner = new Html5Qrcode("qr-reader");
-  scanner.start({facingMode:"environment"},{fps:10,qrbox:250},txt=>{
-    search.value = txt;
-    highlightValue = txt;
-    page = 1;
-    render();
-    scanner.stop();
-    qrBackdrop.style.display="none";
-  });
+  scanner.start(
+    { facingMode:"environment" },
+    { fps:10, qrbox:{width:180,height:180} },
+    txt=>{
+      // SOUND
+      beep.currentTime = 0;
+      beep.play();
+
+      // STRONG VIBRATION
+      if(navigator.vibrate){
+        navigator.vibrate([300,100,300,100,400]);
+      }
+
+      search.value = txt;
+      highlightValue = txt;
+      page = 1;
+      render();
+
+      scanner.stop();
+      qrBackdrop.style.display="none";
+    }
+  );
 };
+
 qrClose.onclick = ()=>{
   if(scanner) scanner.stop();
   qrBackdrop.style.display="none";
