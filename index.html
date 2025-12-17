@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Spare Parts Search</title>
 
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
@@ -27,15 +27,10 @@ th{background:#e6e9f0}
 body.dark table{background:var(--dark-card)}
 body.dark th{background:#111827;color:var(--dark-text)}
 .pagination{margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.highlight{background:#ffeaa7 !important}
+.highlight{background:#ffeaa7!important}
 .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:9999}
 .modal{background:#fff;padding:14px;border-radius:10px;width:94%;max-width:500px}
 #qr-reader{width:100%;height:300px}
-
-@media(max-width:600px){
-  h2{font-size:22px}
-  #qr-reader{height:240px}
-}
 </style>
 </head>
 
@@ -44,9 +39,9 @@ body.dark th{background:#111827;color:var(--dark-text)}
 <h2>Spare Parts Search</h2>
 
 <div class="topbar">
-  <button id="btn-scan" class="btn btn-primary">📷 Scan</button>
-  <button id="btn-refresh" class="btn btn-secondary">↻ Refresh</button>
-  <button id="btn-export" class="btn btn-secondary">⬇ Export CSV</button>
+  <button id="btnScan" class="btn btn-primary">📷 Scan</button>
+  <button id="btnRefresh" class="btn btn-secondary">↻ Refresh</button>
+  <button id="btnExport" class="btn btn-secondary">⬇ Export CSV</button>
   <label>Dark <input type="checkbox" id="darkToggle"></label>
   <label>Compact <input type="checkbox" id="compactToggle"></label>
 </div>
@@ -70,152 +65,162 @@ body.dark th{background:#111827;color:var(--dark-text)}
   <button id="jumpBtn" class="btn btn-secondary">Go</button>
 </div>
 
-<!-- SCANNER -->
-<div id="qr-backdrop" class="modal-backdrop">
+<!-- SCANNER MODAL -->
+<div id="qrBackdrop" class="modal-backdrop">
   <div class="modal">
     <h3>Scan Code</h3>
     <div id="qr-reader"></div>
-    <button id="qr-close" class="btn btn-secondary">Close</button>
+    <button id="qrClose" class="btn btn-secondary">Close</button>
   </div>
 </div>
 
 <script>
-const URL="https://sheetdb.io/api/v1/bvdsyfvkla1lv";
-const tbody=document.getElementById("tbody");
-const search=document.getElementById("search");
-const pageInfo=document.getElementById("pageInfo");
+/* ===== DOM ===== */
+const tbody = document.getElementById("tbody");
+const search = document.getElementById("search");
+const pageInfo = document.getElementById("pageInfo");
 
-let all=[],page=1,perPage=50,scanner,highlightValue=null;
+const btnScan = document.getElementById("btnScan");
+const btnRefresh = document.getElementById("btnRefresh");
+const btnExport = document.getElementById("btnExport");
+const prevBtn = document.getElementById("prev");
+const nextBtn = document.getElementById("next");
+const jumpBtn = document.getElementById("jumpBtn");
+const jumpInput = document.getElementById("jump");
 
-/* ===== FIX TRAILING SPACES ===== */
+const darkToggle = document.getElementById("darkToggle");
+const compactToggle = document.getElementById("compactToggle");
+
+const qrBackdrop = document.getElementById("qrBackdrop");
+const qrClose = document.getElementById("qrClose");
+
+/* ===== CONFIG ===== */
+const URL = "https://sheetdb.io/api/v1/bvdsyfvkla1lv";
+let all = [], page = 1, perPage = 50;
+let scanner = null, highlightValue = null;
+
+/* ===== UTIL ===== */
 function cleanKeys(o){
-  const r={};
-  for(const k in o) r[k.trim()]=o[k];
+  const r = {};
+  for(const k in o) r[k.trim()] = o[k];
   return r;
 }
 
-/* ===== OFFLINE CACHE ===== */
-function saveCache(data){
-  localStorage.setItem("spare_cache",JSON.stringify(data));
-}
-function loadCache(){
-  try{
-    return JSON.parse(localStorage.getItem("spare_cache")||"[]");
-  }catch{ return []; }
-}
+/* ===== CACHE ===== */
+function saveCache(d){ localStorage.setItem("spare_cache", JSON.stringify(d)); }
+function loadCache(){ return JSON.parse(localStorage.getItem("spare_cache")||"[]"); }
 
 /* ===== LOAD ===== */
 async function load(){
   try{
-    const res=await fetch(URL);
-    const json=await res.json();
-    all=prepare(json);
+    const res = await fetch(URL);
+    const json = await res.json();
+    all = prepare(json);
     saveCache(all);
   }catch{
-    all=loadCache();
+    all = loadCache();
     alert("Offline mode: loaded cached data");
   }
-  page=1;
+  page = 1;
   render();
 }
 
-/* ===== PREPARE ===== */
+/* ===== PREP ===== */
 function prepare(json){
   return json.map(x=>{
-    const r=cleanKeys(x);
-    r._s=((r["item no"]||"")+" "+(r["part no"]||"")+" "+(r["description"]||"")+" "+(r["category"]||"")+" "+(r["qty"]||"")).toLowerCase();
+    const r = cleanKeys(x);
+    r._s = (
+      (r["item no"]||"") + " " +
+      (r["part no"]||"") + " " +
+      (r["description"]||"") + " " +
+      (r["category"]||"") + " " +
+      (r["qty"]||"")
+    ).toLowerCase();
     return r;
   });
 }
 
 /* ===== RENDER ===== */
 function render(){
-  const q=search.value.toLowerCase();
-  const list=q?all.filter(r=>r._s.includes(q)):all;
+  const q = search.value.toLowerCase();
+  const list = q ? all.filter(r=>r._s.includes(q)) : all;
 
-  const pages=Math.max(1,Math.ceil(list.length/perPage));
-  if(page>pages) page=pages;
+  const pages = Math.max(1, Math.ceil(list.length / perPage));
+  if(page > pages) page = pages;
 
-  const start=(page-1)*perPage;
-  const view=list.slice(start,start+perPage);
+  const start = (page-1)*perPage;
+  const view = list.slice(start, start+perPage);
 
-  tbody.innerHTML=view.map((r,i)=>{
-    const val=(r["part no"]||"")+r["item no"];
-    return `
-    <tr class="${highlightValue && val.includes(highlightValue)?"highlight":""}">
+  tbody.innerHTML = view.map((r,i)=>`
+    <tr class="${highlightValue && (r["part no"]||"").includes(highlightValue) ? "highlight":""}">
       <td>${start+i+1}</td>
       <td>${r["item no"]||""}</td>
       <td>${r["part no"]||""}</td>
       <td>${r["description"]||""}</td>
       <td>${r["category"]||""}</td>
       <td>${r["qty"]||""}</td>
-    </tr>`;
-  }).join("");
+    </tr>
+  `).join("");
 
-  pageInfo.textContent=`Page ${page} of ${pages} (${list.length})`;
+  pageInfo.textContent = `Page ${page} of ${pages} (${list.length})`;
 }
 
 /* ===== EVENTS ===== */
-search.oninput=()=>{page=1;render();};
-prev.onclick=()=>{if(page>1){page--;render();}};
-next.onclick=()=>{page++;render();};
-jumpBtn.onclick=()=>{
-  const p=parseInt(jump.value);
-  if(p>0){page=p;render();}
+search.oninput = ()=>{ page=1; render(); };
+prevBtn.onclick = ()=>{ if(page>1){ page--; render(); }};
+nextBtn.onclick = ()=>{ page++; render(); };
+jumpBtn.onclick = ()=>{
+  const p = parseInt(jumpInput.value);
+  if(p>0){ page=p; render(); }
 };
 
 /* ===== EXPORT CSV ===== */
-btn-export.onclick=()=>{
-  const q=search.value.toLowerCase();
-  const list=q?all.filter(r=>r._s.includes(q)):all;
-
-  let csv="Item No,Part No,Description,Category,Qty\n";
-  list.forEach(r=>{
+btnExport.onclick = ()=>{
+  let csv = "Item No,Part No,Description,Category,Qty\n";
+  all.forEach(r=>{
     csv+=`"${r["item no"]||""}","${r["part no"]||""}","${r["description"]||""}","${r["category"]||""}","${r["qty"]||""}"\n`;
   });
-
-  const blob=new Blob([csv],{type:"text/csv"});
-  const a=document.createElement("a");
-  a.href=URL.createObjectURL(blob);
-  a.download="spare_parts.csv";
+  const blob = new Blob([csv],{type:"text/csv"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "spare_parts.csv";
   a.click();
 };
 
 /* ===== SCANNER ===== */
-const backdrop=document.getElementById("qr-backdrop");
-btn-scan.onclick=()=>{
-  backdrop.style.display="flex";
-  scanner=new Html5Qrcode("qr-reader");
+btnScan.onclick = ()=>{
+  qrBackdrop.style.display="flex";
+  scanner = new Html5Qrcode("qr-reader");
   scanner.start({facingMode:"environment"},{fps:10,qrbox:250},txt=>{
-    search.value=txt;
-    highlightValue=txt;
-    page=1;
+    search.value = txt;
+    highlightValue = txt;
+    page = 1;
     render();
     scanner.stop();
-    backdrop.style.display="none";
+    qrBackdrop.style.display="none";
   });
 };
-qr-close.onclick=()=>{
+qrClose.onclick = ()=>{
   if(scanner) scanner.stop();
-  backdrop.style.display="none";
+  qrBackdrop.style.display="none";
 };
 
 /* ===== THEME ===== */
-darkToggle.checked=localStorage.dark==="1";
-compactToggle.checked=localStorage.compact==="1";
-document.body.classList.toggle("dark",darkToggle.checked);
-document.body.classList.toggle("compact",compactToggle.checked);
+darkToggle.checked = localStorage.dark==="1";
+compactToggle.checked = localStorage.compact==="1";
+document.body.classList.toggle("dark", darkToggle.checked);
+document.body.classList.toggle("compact", compactToggle.checked);
 
-darkToggle.onchange=()=>{
-  document.body.classList.toggle("dark",darkToggle.checked);
-  localStorage.dark=darkToggle.checked?"1":"";
+darkToggle.onchange = ()=>{
+  document.body.classList.toggle("dark", darkToggle.checked);
+  localStorage.dark = darkToggle.checked?"1":"";
 };
-compactToggle.onchange=()=>{
-  document.body.classList.toggle("compact",compactToggle.checked);
-  localStorage.compact=compactToggle.checked?"1":"";
+compactToggle.onchange = ()=>{
+  document.body.classList.toggle("compact", compactToggle.checked);
+  localStorage.compact = compactToggle.checked?"1":"";
 };
 
-btn-refresh.onclick=load;
+btnRefresh.onclick = load;
 
 load();
 </script>
