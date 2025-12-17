@@ -8,7 +8,7 @@
 <style>
 :root{
   --bg:#f5f6fa;
-  --card:#ffffff;
+  --card:#fff;
   --muted:#7d8794;
   --primary:#007bff;
   --text:#222;
@@ -19,7 +19,7 @@
 }
 
 body{
-  font-family: Arial, sans-serif;
+  font-family:Arial,sans-serif;
   margin:16px;
   background:var(--bg);
   color:var(--text);
@@ -30,46 +30,30 @@ body.dark{
   color:var(--dark-text);
 }
 
-h2{
-  margin:0 0 8px 0;
-  font-size:28px;
-}
+h2{ margin:0 0 8px; font-size:28px; }
+#status{ font-size:14px; color:var(--muted); margin-bottom:6px; }
 
-#status{
-  color:var(--muted);
-  margin-bottom:8px;
-  font-size:14px;
-}
-
-/* ===== TOP BAR FIX (NO COLLAPSE) ===== */
+/* ===== HEADER FIX ===== */
 .topbar{
   display:flex;
-  align-items:center;
   gap:8px;
-  flex-wrap:nowrap;        /* 🔥 KEY FIX */
-  overflow-x:auto;         /* scroll instead of collapse */
+  align-items:center;
+  flex-wrap:nowrap;
+  overflow-x:auto;
   margin-bottom:10px;
 }
-
 .topbar::-webkit-scrollbar{ display:none; }
 
 .btn{
   padding:8px 12px;
-  border-radius:6px;
   border:none;
+  border-radius:6px;
   cursor:pointer;
   font-size:14px;
   white-space:nowrap;
 }
-
-.btn-primary{
-  background:var(--primary);
-  color:#fff;
-}
-
-.btn-secondary{
-  background:#e5e7eb;
-}
+.btn-primary{ background:var(--primary); color:#fff; }
+.btn-secondary{ background:#e5e7eb; }
 
 /* ===== SEARCH ===== */
 #search{
@@ -88,19 +72,14 @@ table{
   background:var(--card);
   border-radius:8px;
   overflow:hidden;
-  margin-top:10px;   /* prevents header push */
 }
-
 th,td{
   padding:10px;
   border-bottom:1px solid #e5e7eb;
   text-align:left;
   font-size:14px;
 }
-
-th{
-  background:#e6e9f0;
-}
+th{ background:#e6e9f0; }
 
 .compact th,
 .compact td{
@@ -108,18 +87,12 @@ th{
   font-size:13px;
 }
 
-body.dark table{
-  background:var(--dark-card);
-}
-
-body.dark th{
-  background:#111827;
-  color:var(--dark-text);
-}
+body.dark table{ background:var(--dark-card); }
+body.dark th{ background:#111827; color:var(--dark-text); }
 
 /* ===== PAGINATION ===== */
 .pagination{
-  margin-top:14px;
+  margin-top:12px;
   display:flex;
   gap:8px;
   align-items:center;
@@ -136,17 +109,15 @@ body.dark th{
   justify-content:center;
   z-index:9999;
 }
-
 .modal{
-  width:640px;
-  max-width:94%;
   background:var(--card);
-  border-radius:10px;
   padding:14px;
+  border-radius:10px;
+  width:600px;
+  max-width:94%;
 }
-
 #qr-reader{
-  height:300px;
+  height:260px;
   background:#000;
   color:#aaa;
   display:flex;
@@ -155,18 +126,17 @@ body.dark th{
   border-radius:8px;
 }
 
-/* ===== MOBILE FIXES ===== */
-@media (max-width:600px){
+/* ===== MOBILE ===== */
+@media(max-width:600px){
   h2{ font-size:22px; }
   .btn{ padding:6px 10px; font-size:13px; }
-  #qr-reader{ height:240px; }
 }
 </style>
 </head>
 
 <body>
 
-<div id="status">Loading...</div>
+<div id="status">Loading…</div>
 <h2>Spare Parts Search</h2>
 
 <div class="topbar">
@@ -177,7 +147,7 @@ body.dark th{
   <label>Compact <input type="checkbox" id="compactToggle"></label>
 </div>
 
-<input id="search" type="text" placeholder="Search part / description / category / qty">
+<input id="search" placeholder="Search part / description / category / qty">
 
 <table>
 <thead>
@@ -197,8 +167,6 @@ body.dark th{
   <button id="prev" class="btn btn-secondary">Prev</button>
   <span id="page-info"></span>
   <button id="next" class="btn btn-secondary">Next</button>
-  <input id="jumpPage" type="number" placeholder="Page" style="width:70px">
-  <button id="jumpBtn" class="btn btn-secondary">Go</button>
 </div>
 
 <!-- Scanner -->
@@ -211,22 +179,88 @@ body.dark th{
 </div>
 
 <script>
-const SHEETDB_URL="https://sheetdb.io/api/v1/bvdsyfvkla1lv";
+/* ===== CONFIG ===== */
+const SHEET_URL="https://sheetdb.io/api/v1/bvdsyfvkla1lv";
 const perPage=50;
 
+/* ===== ELEMENTS ===== */
 const tbody=document.getElementById("table-body");
 const search=document.getElementById("search");
-const pageInfo=document.getElementById("page-info");
 const statusEl=document.getElementById("status");
+const pageInfo=document.getElementById("page-info");
 
+const prevBtn=document.getElementById("prev");
+const nextBtn=document.getElementById("next");
+const refreshBtn=document.getElementById("btn-refresh");
+const addBtn=document.getElementById("btn-add");
+const scanBtn=document.getElementById("btn-scan");
+
+const darkToggle=document.getElementById("darkToggle");
+const compactToggle=document.getElementById("compactToggle");
+
+const qrBackdrop=document.getElementById("qr-backdrop");
+const qrClose=document.getElementById("qr-close");
+
+/* ===== STATE ===== */
 let data=[],page=1;
 
 /* ===== FIX TRAILING SPACE KEYS ===== */
-const cleanKeys=o=>{
+function cleanKeys(o){
   const r={};
   for(const k in o) r[k.trim()]=o[k];
   return r;
-};
+}
+
+/* ===== LOAD ===== */
+async function load(){
+  statusEl.textContent="Fetching records...";
+  const res=await fetch(SHEET_URL);
+  const json=await res.json();
+
+  data=json.map(x=>{
+    const r=cleanKeys(x);
+    r._s=((r["item no"]||"")+" "+(r["part no"]||"")+" "+(r["description"]||"")+" "+(r["category"]||"")+" "+(r["qty"]||"")).toLowerCase();
+    return r;
+  });
+
+  statusEl.textContent=`Loaded ${data.length} records`;
+  render();
+}
+
+/* ===== RENDER ===== */
+function render(){
+  const q=search.value.toLowerCase();
+  const f=q?data.filter(r=>r._s.includes(q)):data;
+
+  const pages=Math.max(1,Math.ceil(f.length/perPage));
+  if(page>pages) page=pages;
+
+  tbody.innerHTML=f.slice((page-1)*perPage,page*perPage).map((r,i)=>`
+    <tr>
+      <td>${(page-1)*perPage+i+1}</td>
+      <td>${r["item no"]||""}</td>
+      <td>${r["part no"]||""}</td>
+      <td>${r["description"]||""}</td>
+      <td>${r["category"]||""}</td>
+      <td>${r["qty"]||""}</td>
+    </tr>
+  `).join("");
+
+  pageInfo.textContent=`Page ${page} / ${pages}`;
+}
+
+/* ===== EVENTS ===== */
+search.oninput=()=>{page=1;render();};
+prevBtn.onclick=()=>{if(page>1){page--;render();}};
+nextBtn.onclick=()=>{page++;render();};
+refreshBtn.onclick=load;
+addBtn.onclick=()=>window.open(
+  "https://docs.google.com/forms/d/e/1FAIpQLSdYtCErU2QugovcnGLHkPOd_G0owZKzYadJdXXgaxwa9ZGegg/viewform",
+  "_blank"
+);
+
+scanBtn.onclick=()=>qrBackdrop.style.display="flex";
+qrClose.onclick=()=>qrBackdrop.style.display="none";
 
 /* ===== THEME ===== */
 darkToggle.checked=localStorage.dark==="1";
@@ -243,58 +277,7 @@ compactToggle.onchange=()=>{
   localStorage.compact=compactToggle.checked?"1":"";
 };
 
-/* ===== LOAD ===== */
-async function load(){
-  statusEl.textContent="Fetching records...";
-  const res=await fetch(SHEETDB_URL);
-  const json=await res.json();
-
-  data=json.map(x=>{
-    const r=cleanKeys(x);
-    r._s=((r["item no"]||"")+" "+(r["part no"]||"")+" "+(r["description"]||"")+" "+(r["category"]||"")+" "+(r["qty"]||"")).toLowerCase();
-    return r;
-  });
-
-  statusEl.textContent=`Loaded ${data.length} records`;
-  render();
-}
-
-/* ===== RENDER ===== */
-function render(){
-  const q=search.value.toLowerCase().trim();
-  const f=q?data.filter(r=>r._s.includes(q)):data;
-
-  const pages=Math.max(1,Math.ceil(f.length/perPage));
-  if(page>pages) page=pages;
-
-  const slice=f.slice((page-1)*perPage,page*perPage);
-
-  tbody.innerHTML=slice.map((r,i)=>`
-    <tr>
-      <td>${(page-1)*perPage+i+1}</td>
-      <td>${r["item no"]||""}</td>
-      <td>${r["part no"]||""}</td>
-      <td>${r["description"]||""}</td>
-      <td>${r["category"]||""}</td>
-      <td>${r["qty"]||""}</td>
-    </tr>
-  `).join("");
-
-  pageInfo.textContent=`Page ${page} / ${pages}`;
-}
-
-/* ===== EVENTS ===== */
-search.oninput=()=>{page=1;render();};
-prev.onclick=()=>{if(page>1){page--;render();}};
-next.onclick=()=>{page++;render();};
-jumpBtn.onclick=()=>{const p=parseInt(jumpPage.value);if(p>0){page=p;render();}};
-btn-refresh.onclick=load;
-btn-add.onclick=()=>window.open("https://docs.google.com/forms/d/e/1FAIpQLSdYtCErU2QugovcnGLHkPOd_G0owZKzYadJdXXgaxwa9ZGegg/viewform","_blank");
-
-/* ===== SCANNER UI ONLY ===== */
-btn-scan.onclick=()=>qr-backdrop.style.display="flex";
-qr-close.onclick=()=>qr-backdrop.style.display="none";
-
+/* ===== INIT ===== */
 load();
 </script>
 
