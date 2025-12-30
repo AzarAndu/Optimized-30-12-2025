@@ -1,259 +1,752 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Spare Parts Search</title>
-
-<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
+<title>Spare Parts Master</title>
 <style>
-:root{
-  --bg:#f5f6fa; --card:#fff; --primary:#007bff; --text:#222;
-  --dark-bg:#1f2933; --dark-card:#2d3748; --dark-text:#e5e7eb;
+/* =========================================
+   CORE VARIABLES & RESET
+   ========================================= */
+:root {
+  --bg-body: #f0f2f5; --bg-card: #ffffff; --text-main: #1a1a1a; --text-muted: #666666; --border-color: #d1d5db;
+  --primary: #007bff; --primary-dark: #0056b3; --secondary: #e2e6ea; --secondary-dark: #cbd3da;
+  --accent: #28a745; --accent-dark: #1e7e34; --ocr-color: #6f42c1; --ocr-dark: #5a32a3;
+  --btn-info: #17a2b8; --btn-info-dark: #117a8b;
+  --btn-warn: #fd7e14; --btn-warn-dark: #d6660b;
+  --btn-danger: #dc3545;
+  --btn-height: 40px; --radius: 6px;
+  --dm-bg-body: #121212; --dm-bg-card: #1e1e1e; --dm-text-main: #e0e0e0; --dm-text-muted: #a0a0a0; --dm-border: #333333;
 }
-body{font-family:Arial;margin:16px;background:var(--bg);color:var(--text);}
-body.dark{background:var(--dark-bg);color:var(--dark-text);}
-h2{margin:0 0 10px;font-size:26px}
-.topbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
-.btn{padding:8px 12px;border:none;border-radius:6px;cursor:pointer}
-.btn-primary{background:var(--primary);color:#fff}
-.btn-secondary{background:#e5e7eb}
-#search{width:100%;max-width:420px;padding:10px;border-radius:8px;border:1px solid #ccc;margin-bottom:10px}
-table{width:100%;border-collapse:collapse;background:var(--card);border-radius:8px}
-th,td{padding:10px;border-bottom:1px solid #e5e7eb}
-th{background:#e6e9f0}
-.compact th,.compact td{padding:6px;font-size:13px}
-body.dark table{background:var(--dark-card)}
-body.dark th{background:#111827;color:var(--dark-text)}
-.pagination{margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.highlight{background:#ffeaa7!important;font-weight:bold}
-.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:9999}
-.modal{background:#fff;padding:14px;border-radius:10px;width:95%;max-width:400px}
-#qr-reader{width:100%;height:220px}
+* { box-sizing: border-box; outline: none; -webkit-tap-highlight-color: transparent; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: var(--bg-body); color: var(--text-main); margin: 0; padding: 10px; line-height: 1.5; }
+
+/* =========================================
+   LAYOUT & HEADER
+   ========================================= */
+.app-container { max-width: 1200px; margin: 0 auto; background: var(--bg-card); padding: 20px; border-radius: var(--radius); border: 1px solid var(--border-color); box-shadow: 0 4px 0 rgba(0,0,0,0.05); }
+.header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid var(--border-color); flex-wrap: wrap; gap: 15px; }
+h2 { margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.5px; }
+#status { font-size: 13px; font-family: monospace; color: var(--text-muted); background: rgba(0,0,0,0.05); padding: 4px 8px; border-radius: 4px; }
+
+/* =========================================
+   BUTTONS (CAPSULE 3D STYLE)
+   ========================================= */
+.btn { 
+  display: inline-flex; align-items: center; justify-content: center; 
+  height: var(--btn-height); padding: 0 20px; 
+  font-weight: 700; font-size: 14px; text-transform: uppercase; 
+  border-radius: 50px; /* CAPSULE SHAPE */
+  cursor: pointer; border: 1px solid rgba(0,0,0,0.1); 
+  position: relative; border-bottom-width: 4px; margin-bottom: 4px; 
+  user-select: none; transition: transform 0.05s;
+}
+.btn:active { border-bottom-width: 0; margin-top: 4px; margin-bottom: 0; }
+
+.btn-primary { background-color: var(--primary); color: #fff; border-color: var(--primary-dark); }
+.btn-primary:active { background-color: var(--primary-dark); }
+
+.btn-secondary { background-color: var(--secondary); color: #333; border-color: var(--secondary-dark); }
+.btn-secondary:active { background-color: var(--secondary-dark); }
+
+.btn-success { background-color: var(--accent); color: white; border-color: var(--accent-dark); }
+.btn-success:active { background-color: var(--accent-dark); }
+
+.btn-ocr { background-color: var(--ocr-color); color: white; border-color: var(--ocr-dark); }
+.btn-ocr:active { background-color: var(--ocr-dark); }
+
+#btn-clear { color: var(--btn-danger); font-size: 18px; }
+#btn-refresh { background-color: var(--btn-info); color: white; border-color: var(--btn-info-dark); }
+#btn-refresh:active { background-color: var(--btn-info-dark); }
+#btn-export { background-color: var(--btn-warn); color: white; border-color: var(--btn-warn-dark); }
+#btn-export:active { background-color: var(--btn-warn-dark); }
+
+/* =========================================
+   TOGGLES
+   ========================================= */
+.toggles-group { display: flex; gap: 15px; align-items: center; }
+.toggle-wrapper { display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; }
+.toggle-label { font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); }
+.switch { position: relative; display: inline-block; width: 50px; height: 26px; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; border-radius: 34px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); }
+.slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 4px; bottom: 3px; background-color: white; border-radius: 50%; box-shadow: 0 2px 0 rgba(0,0,0,0.2); transition: transform 0.1s; }
+input:checked + .slider { background-color: var(--primary); }
+input:checked + .slider:before { transform: translateX(22px); }
+body.dark .slider { background-color: #444; }
+body.dark input:checked + .slider { background-color: var(--primary); }
+
+/* =========================================
+   INPUTS & TABLES
+   ========================================= */
+.controls-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 15px; }
+.search-area { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
+#search { flex: 1; min-width: 250px; height: 44px; padding: 0 15px; border: 2px solid var(--border-color); border-radius: 50px; font-size: 16px; background: var(--bg-body); color: var(--text-main); box-shadow: inset 0 2px 4px rgba(0,0,0,0.05); }
+#search:focus { border-color: var(--primary); }
+
+.table-wrapper { overflow-x: auto; border: 2px solid var(--border-color); border-radius: var(--radius); margin-bottom: 15px; background: var(--bg-card); }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th { background: #f8f9fa; color: #444; font-weight: 700; text-align: left; padding: 12px; border-bottom: 2px solid #ddd; text-transform: uppercase; font-size: 12px; }
+td { padding: 12px; border-bottom: 1px solid #eee; color: var(--text-main); }
+tr:nth-child(even) { background-color: rgba(0,0,0,0.02); }
+td.cell-highlight { background-color: #ffeb3b !important; color: black !important; font-weight: bold; border: 2px solid #000; }
+body.compact td, body.compact th { padding: 6px 8px; font-size: 13px; }
+
+/* =========================================
+   DARK MODE
+   ========================================= */
+body.dark { background-color: var(--dm-bg-body); color: var(--dm-text-main); }
+body.dark .app-container { background-color: var(--dm-bg-card); border-color: var(--dm-border); }
+body.dark #search { background: #2b2b2b; border-color: #444; color: #fff; }
+body.dark #search::placeholder { color: #acacac; opacity: 1; }
+body.dark .page-input { background: #2b2b2b; color: #fff; border-color: #444; }
+body.dark table { background-color: var(--dm-bg-card); color: var(--dm-text-main); }
+body.dark th { background: #252525; color: #ccc; border-bottom-color: #444; }
+body.dark td { color: var(--dm-text-main); border-bottom-color: #333; }
+body.dark tr:nth-child(even) { background-color: rgba(255,255,255,0.03); }
+body.dark .header-row { border-bottom-color: #333; }
+body.dark .btn-secondary { background: #3a3a3a; color: #ffffff; border-color: #111; }
+body.dark .btn-secondary:active { background: #222; }
+body.dark .site-menu { background: var(--dm-bg-card); border-color: #444; box-shadow: 4px 4px 0 rgba(0,0,0,0.5); }
+body.dark .site-menu div { border-bottom-color: #333; color: var(--dm-text-main); }
+body.dark .site-menu div:hover { background: var(--primary); color: #fff; }
+
+/* =========================================
+   MODAL
+   ========================================= */
+.site-dropdown-container { position: relative; display: inline-block; }
+.site-menu { display: none; position: absolute; top: 100%; left: 0; background: var(--bg-card); border: 2px solid var(--text-main); z-index: 1000; width: 200px; box-shadow: 4px 4px 0 rgba(0,0,0,0.2); }
+.site-menu.open { display: block; }
+.site-menu div { padding: 10px; border-bottom: 1px solid #eee; cursor: pointer; }
+.site-menu div:hover { background: var(--primary); color: white; }
+
+.modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; z-index: 9999; }
+.modal { background: var(--bg-card); width: 600px; max-width: 95%; padding: 20px; border-radius: var(--radius); border: 2px solid #444; display: flex; flex-direction: column; }
+
+#qr-reader, #ocr-reader { width: 100%; background: #000; min-height: 300px; margin: 10px 0; position: relative; overflow: hidden; border-radius: 4px; }
+#ocr-reader video { width: 100%; height: 100%; object-fit: cover; }
+
+#qr-shaded-region { display: none !important; }
+
+/* =========================================
+   OCR/QR UI: PULSING CORNERS & LASER
+   ========================================= */
+.ocr-guide-box {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 70%; height: 60px; /* Default Strip for OCR */
+    background: transparent;
+    border: none;
+    box-shadow: 0 0 0 9999px rgba(0,0,0,0.6);
+    pointer-events: none;
+    overflow: visible;
+}
+
+/* BIG SQUARE FOR QR */
+.ocr-guide-box.qr-square {
+    width: 260px;
+    height: 260px;
+}
+
+@keyframes pulseCorners {
+    0% { opacity: 0.6; box-shadow: 0 0 5px #00ff00; }
+    50% { opacity: 1; box-shadow: 0 0 15px #00ff00; }
+    100% { opacity: 0.6; box-shadow: 0 0 5px #00ff00; }
+}
+
+.corner {
+    position: absolute; width: 25px; height: 25px;
+    border-color: #00ff00; border-style: solid;
+    z-index: 2;
+    animation: pulseCorners 1.2s infinite ease-in-out;
+}
+
+.top-left { top: -2px; left: -2px; border-width: 4px 0 0 4px; border-radius: 4px 0 0 0; }
+.top-right { top: -2px; right: -2px; border-width: 4px 4px 0 0; border-radius: 0 4px 0 0; }
+.bottom-left { bottom: -2px; left: -2px; border-width: 0 0 4px 4px; border-radius: 0 0 0 4px; }
+.bottom-right { bottom: -2px; right: -2px; border-width: 0 4px 4px 0; border-radius: 0 0 4px 0; }
+
+.scan-line {
+    position: absolute; width: 100%; height: 3px;
+    background: linear-gradient(to right, transparent, #00ff00, transparent);
+    box-shadow: 0 0 15px rgba(0, 255, 0, 0.9);
+    top: 0;
+    animation: scanMove 1.5s infinite linear;
+    z-index: 1;
+}
+@keyframes scanMove {
+    0% { top: 0; opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { top: 100%; opacity: 0; }
+}
+
+.ocr-guide-text {
+    position: absolute; top: -35px; left: 0; width: 100%;
+    text-align: center; color: #fff; font-weight: bold; font-size: 14px;
+    text-shadow: 1px 1px 3px #000; background: rgba(0,0,0,0.5);
+    padding: 4px 0; border-radius: 4px;
+}
+.ocr-processing {
+    position: absolute; inset:0; background: rgba(0,0,0,0.85);
+    display: none; align-items: center; justify-content: center;
+    color: white; flex-direction: column; z-index: 20;
+}
+
+/* Utility */
+.pagination { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.page-input { width: 60px; padding: 5px; margin-right: 5px; height: 32px; border:1px solid #ccc; border-radius:4px;}
+
 </style>
 </head>
-
 <body>
 
-<h2>Spare Parts Search</h2>
+<div class="app-container">
+  
+  <!-- HEADER -->
+  <div class="header-row">
+    <div>
+      <h2>Spare Parts Master</h2>
+      <div id="status">System Ready</div>
+    </div>
+    
+    <!-- 3D TOGGLES -->
+    <div class="toggles-group">
+        <div class="toggle-wrapper">
+            <span class="toggle-label">Dark</span>
+            <label class="switch">
+                <input type="checkbox" id="darkToggle">
+                <span class="slider"></span>
+            </label>
+        </div>
+        <div class="toggle-wrapper">
+            <span class="toggle-label">Compact</span>
+            <label class="switch">
+                <input type="checkbox" id="compactToggle">
+                <span class="slider"></span>
+            </label>
+        </div>
+        <div class="toggle-wrapper">
+            <span id="readToggleLabel" class="toggle-label" style="color:var(--primary)">Read ON</span>
+            <label class="switch">
+                <input type="checkbox" id="readToggle" checked>
+                <span class="slider"></span>
+            </label>
+        </div>
+    </div>
+  </div>
 
-<div class="topbar">
-  <button id="btnScan" class="btn btn-primary">📷 Scan</button>
-  <button id="btnRefresh" class="btn btn-secondary">↻ Refresh</button>
-  <button id="btnExport" class="btn btn-secondary">⬇ Export CSV</button>
-  <label>Dark <input type="checkbox" id="darkToggle"></label>
-  <label>Compact <input type="checkbox" id="compactToggle"></label>
+  <!-- MAIN ACTIONS (GRID) -->
+  <div class="controls-grid">
+    <button id="btn-scan" class="btn btn-primary">📷 Scan QR</button>
+    <button id="btn-ocr" class="btn btn-ocr">📝 OCR Scan</button>
+    <button id="btn-add" class="btn btn-success">➕ Add Part</button>
+    <button id="btn-refresh" class="btn btn-secondary">↻ Refresh</button>
+    <button id="btn-export" class="btn btn-secondary" title="Export current list to CSV">📄 Export CSV</button>
+    
+    <div class="site-dropdown-container">
+        <button id="btn-sites" class="btn btn-primary" style="width:100%">🔍 Search Sites ▼</button>
+        <div id="site-menu" class="site-menu">
+            <div data-site="partsouq">🧩 Partsouq</div>
+            <div data-site="spareto">🛠 Spareto</div>
+            <div data-site="sumarauto">🚗 Sumarauto</div>
+            <div data-site="fitin-google">🔎 FitinParts (Google)</div>
+        </div>
+    </div>
+  </div>
+
+  <!-- SEARCH AREA -->
+  <div class="search-area">
+    <input id="search" type="text" placeholder="Search Part No, Desc, Category..." autocomplete="off">
+    <button id="btn-clear" class="btn btn-secondary" title="Clear">✖</button>
+    <button id="btn-google" class="btn btn-secondary">G</button>
+    <button id="btn-lens" class="btn btn-secondary">📷 Lens</button>
+    <button id="btn-send" class="btn btn-secondary">📤 Send to Laptop</button>
+  </div>
+
+  <!-- TABLE -->
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:50px">#</th>
+          <th>Item No</th>
+          <th>Part No</th>
+          <th>Description</th>
+          <th>Category</th>
+          <th style="width:60px">Qty</th>
+        </tr>
+      </thead>
+      <tbody id="table-body">
+        <!-- Rows injected here -->
+      </tbody>
+    </table>
+  </div>
+
+  <!-- FOOTER / PAGINATION -->
+  <div class="pagination">
+    <button id="prev-page" class="btn btn-secondary">Previous</button>
+    <span id="page-info" style="font-weight:bold; padding:0 10px;">Page 1</span>
+    <button id="next-page" class="btn btn-secondary">Next</button>
+    <div style="flex:1"></div>
+    <input id="jumpPage" type="number" class="page-input" placeholder="Pg #">
+    <button onclick="jumpToPage()" class="btn btn-secondary" style="height:32px; padding:0 10px;">Go</button>
+  </div>
+
 </div>
 
-<input id="search" placeholder="Search item / part / description / category / qty">
-
-<table>
-<thead>
-<tr>
-  <th>#</th><th>Item No</th><th>Part No</th><th>Description</th><th>Category</th><th>Qty</th>
-</tr>
-</thead>
-<tbody id="tbody"></tbody>
-</table>
-
-<div class="pagination">
-  <button id="prev" class="btn btn-secondary">Prev</button>
-  <span id="pageInfo"></span>
-  <button id="next" class="btn btn-secondary">Next</button>
-  <input id="jump" type="number" placeholder="Page #" style="width:80px">
-  <button id="jumpBtn" class="btn btn-secondary">Go</button>
-</div>
-
-<!-- SCANNER -->
-<div id="qrBackdrop" class="modal-backdrop">
+<!-- MODAL -->
+<div id="qr-backdrop" class="modal-backdrop">
   <div class="modal">
-    <h3>Scan Code</h3>
-    <div id="qr-reader"></div>
-    <button id="qrClose" class="btn btn-secondary">Close</button>
+    <h3 id="modal-title" style="margin-top:0">Scanner</h3>
+    
+    <!-- QR View -->
+    <div id="qr-view" style="display:none; position: relative;">
+        <div id="qr-reader"></div>
+        <!-- PRO QR OVERLAY (BIG SQUARE) -->
+        <div class="ocr-guide-box qr-square" style="pointer-events:none;">
+            <span class="corner top-left"></span>
+            <span class="corner top-right"></span>
+            <span class="corner bottom-left"></span>
+            <span class="corner bottom-right"></span>
+            <div class="scan-line"></div>
+            <div class="ocr-guide-text" style="top:-25px; font-size:12px;">SCAN QR / BARCODE</div>
+        </div>
+    </div>
+    
+    <!-- OCR View -->
+    <div id="ocr-reader" style="display:none;">
+        <video id="ocr-video" playsinline autoplay muted></video>
+        <!-- PRO OCR OVERLAY (STRIP) -->
+        <div class="ocr-guide-box">
+            <span class="corner top-left"></span>
+            <span class="corner top-right"></span>
+            <span class="corner bottom-left"></span>
+            <span class="corner bottom-right"></span>
+            <div class="scan-line"></div>
+            <div class="ocr-guide-text">PLACE PART NUMBER IN BOX</div>
+        </div>
+        <div id="ocr-loading" class="ocr-processing">
+             <div style="font-size:24px; margin-bottom:10px;">⚙️ Starting Engine...</div>
+             <div style="font-size:14px; color:#aaa;">Please wait</div>
+        </div>
+    </div>
+
+    <div id="modal-controls" style="display:flex; justify-content:space-between; margin-top:10px;">
+      <div id="qr-btns">
+          <button id="btn-flash" class="btn btn-secondary">🔦 Flash</button>
+          <button id="btn-photo" class="btn btn-secondary">🖼️ File</button>
+      </div>
+      <div id="ocr-btns" style="display:none; width:100%;">
+          <button id="btn-auto-status" class="btn btn-ocr" style="width:100%; font-weight:bold; opacity:0.8; cursor:default;">⚡ SCANNING... HOLD STEADY</button>
+      </div>
+      <button id="qr-close" class="btn btn-primary" style="margin-left:10px;">Close</button>
+    </div>
   </div>
 </div>
 
-<!-- LOUD SUCCESS SOUND -->
-<audio id="beep" preload="auto">
-  <source src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg">
-</audio>
-
 <script>
-/* ===== DOM ===== */
-const tbody = document.getElementById("tbody");
-const search = document.getElementById("search");
-const pageInfo = document.getElementById("pageInfo");
+/* =========================================
+   CONFIGURATION & STATE
+   ========================================= */
+const SYNC_URL = "https://script.google.com/macros/s/AKfycbxLxQCxMx7ZR13YieRVn8OZHyu8Mm-3uu5ydtWogmQcwhYc6I6jMP6cEGQU9GRWsUXF/exec";
+const SHEETDB_BASE = "https://sheetdb.io/api/v1/bvdsyfvkla1lv";
+const CACHE_KEY = "sheetdb_cache_v1";
 
-const btnScan = document.getElementById("btnScan");
-const btnRefresh = document.getElementById("btnRefresh");
-const btnExport = document.getElementById("btnExport");
-const prevBtn = document.getElementById("prev");
-const nextBtn = document.getElementById("next");
-const jumpBtn = document.getElementById("jumpBtn");
-const jumpInput = document.getElementById("jump");
+let items = [];
+let filteredItems = [];
+let currentPage = 1;
+const perPage = 50;
+let autoReadEnabled = true;
+let lastRowId = null;
+let scanLock = false;
+let qrScanner = null;
+let torchOn = false;
+let html5QrcodeLoaded = false;
+let ocrWorker = null;
+let ocrStream = null;
+let isOcrActive = false;
+let isRecognizing = false;
+const beep = new Audio("./ding.mp3");
 
-const darkToggle = document.getElementById("darkToggle");
-const compactToggle = document.getElementById("compactToggle");
-
-const qrBackdrop = document.getElementById("qrBackdrop");
-const qrClose = document.getElementById("qrClose");
-const beep = document.getElementById("beep");
-
-/* ===== CONFIG ===== */
-const URL = "https://sheetdb.io/api/v1/bvdsyfvkla1lv";
-let all = [], page = 1, perPage = 50;
-let scanner = null, highlightValue = null;
-
-/* ===== UTIL ===== */
-function cleanKeys(o){
-  const r = {};
-  for(const k in o) r[k.trim()] = o[k];
-  return r;
-}
-
-/* ===== CACHE ===== */
-function saveCache(d){ localStorage.setItem("spare_cache", JSON.stringify(d)); }
-function loadCache(){ return JSON.parse(localStorage.getItem("spare_cache")||"[]"); }
-
-/* ===== LOAD ===== */
-async function load(){
-  try{
-    const res = await fetch(URL);
-    const json = await res.json();
-    all = prepare(json);
-    saveCache(all);
-  }catch{
-    all = loadCache();
-    alert("Offline mode: loaded cached data");
-  }
-  page = 1;
-  render();
-}
-
-/* ===== PREP ===== */
-function prepare(json){
-  return json.map(x=>{
-    const r = cleanKeys(x);
-    r._s = (
-      (r["item no"]||"") + " " +
-      (r["part no"]||"") + " " +
-      (r["description"]||"") + " " +
-      (r["category"]||"") + " " +
-      (r["qty"]||"")
-    ).toLowerCase();
-    return r;
-  });
-}
-
-/* ===== RENDER ===== */
-function render(){
-  const q = search.value.toLowerCase();
-  const list = q ? all.filter(r=>r._s.includes(q)) : all;
-
-  const pages = Math.max(1, Math.ceil(list.length / perPage));
-  if(page > pages) page = pages;
-
-  const start = (page-1)*perPage;
-  const view = list.slice(start, start+perPage);
-
-  tbody.innerHTML = view.map((r,i)=>`
-    <tr class="${highlightValue && r._s.includes(highlightValue.toLowerCase()) ? "highlight":""}">
-      <td>${start+i+1}</td>
-      <td>${r["item no"]||""}</td>
-      <td>${r["part no"]||""}</td>
-      <td>${r["description"]||""}</td>
-      <td>${r["category"]||""}</td>
-      <td>${r["qty"]||""}</td>
-    </tr>
-  `).join("");
-
-  pageInfo.textContent = `Page ${page} of ${pages} (${list.length})`;
-}
-
-/* ===== SEARCH (DEBOUNCED) ===== */
-let searchTimer;
-search.oninput = ()=>{
-  clearTimeout(searchTimer);
-  searchTimer = setTimeout(()=>{
-    page = 1;
-    render();
-  }, 200);
+// DOM Elements
+const els = {
+    status: document.getElementById('status'),
+    search: document.getElementById('search'),
+    tbody: document.getElementById('table-body'),
+    pageInfo: document.getElementById('page-info'),
+    prevBtn: document.getElementById('prev-page'),
+    nextBtn: document.getElementById('next-page'),
+    siteMenu: document.getElementById('site-menu'),
+    qrView: document.getElementById('qr-view'),
+    qrReader: document.getElementById('qr-reader'),
+    ocrReader: document.getElementById('ocr-reader'),
+    qrBackdrop: document.getElementById('qr-backdrop'),
+    readLabel: document.getElementById('readToggleLabel'),
+    modalTitle: document.getElementById('modal-title'),
+    qrBtns: document.getElementById('qr-btns'),
+    ocrBtns: document.getElementById('ocr-btns'),
+    ocrVideo: document.getElementById('ocr-video'),
+    ocrLoading: document.getElementById('ocr-loading'),
+    btnAutoStatus: document.getElementById('btn-auto-status'),
+    ocrGuideBox: document.querySelector('.ocr-guide-box')
 };
 
-/* ===== PAGINATION ===== */
-prevBtn.onclick = ()=>{ if(page>1){ page--; render(); }};
-nextBtn.onclick = ()=>{ page++; render(); };
-jumpBtn.onclick = ()=>{
-  const p = parseInt(jumpInput.value);
-  if(p>0){ page=p; render(); }
+/* =========================================
+   THEME & INITIALIZATION
+   ========================================= */
+const isDark = localStorage.getItem('darkMode') === 'true';
+const isCompact = localStorage.getItem('compactMode') === 'true';
+
+document.body.classList.toggle('dark', isDark);
+document.body.classList.toggle('compact', isCompact);
+document.getElementById('darkToggle').checked = isDark;
+document.getElementById('compactToggle').checked = isCompact;
+
+document.getElementById('darkToggle').onchange = (e) => {
+    document.body.classList.toggle('dark', e.target.checked);
+    localStorage.setItem('darkMode', e.target.checked);
+};
+document.getElementById('compactToggle').onchange = (e) => {
+    document.body.classList.toggle('compact', e.target.checked);
+    localStorage.setItem('compactMode', e.target.checked);
+};
+document.getElementById('readToggle').onchange = (e) => {
+    autoReadEnabled = e.target.checked;
+    els.readLabel.textContent = autoReadEnabled ? "Read ON" : "Read OFF";
+    els.readLabel.style.color = autoReadEnabled ? "var(--primary)" : "var(--text-muted)";
 };
 
-/* ===== EXPORT CSV ===== */
-btnExport.onclick = ()=>{
-  let csv = "Item No,Part No,Description,Category,Qty\n";
-  all.forEach(r=>{
-    csv+=`"${r["item no"]||""}","${r["part no"]||""}","${r["description"]||""}","${r["category"]||""}","${r["qty"]||""}"\n`;
-  });
-  const blob = new Blob([csv],{type:"text/csv"});
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "spare_parts.csv";
-  a.click();
+/* =========================================
+   DATA LOGIC
+   ========================================= */
+const cleanKeys = row => {
+    const fixed = {};
+    for (const k in row) fixed[k.trim()] = String(row[k]).trim();
+    return fixed;
 };
 
-/* ===== SCANNER ===== */
-btnScan.onclick = ()=>{
-  qrBackdrop.style.display="flex";
-  scanner = new Html5Qrcode("qr-reader");
-  scanner.start(
-    { facingMode:"environment" },
-    { fps:10, qrbox:{width:180,height:180} },
-    txt=>{
-      // SOUND
-      beep.currentTime = 0;
-      beep.play();
-
-      // STRONG VIBRATION
-      if(navigator.vibrate){
-        navigator.vibrate([300,100,300,100,400]);
-      }
-
-      search.value = txt;
-      highlightValue = txt;
-      page = 1;
-      render();
-
-      scanner.stop();
-      qrBackdrop.style.display="none";
+async function loadData(force = false) {
+    els.status.textContent = "Loading Data...";
+    if (!force) {
+        const cached = sessionStorage.getItem(CACHE_KEY);
+        if (cached) {
+            processData(JSON.parse(cached));
+            return;
+        }
     }
-  );
+    try {
+        const res = await fetch(SHEETDB_BASE, { cache: "no-store" });
+        const data = await res.json();
+        const cleaned = data.map(cleanKeys);
+        sessionStorage.setItem(CACHE_KEY, JSON.stringify(cleaned));
+        processData(cleaned);
+    } catch {
+        els.status.textContent = "Offline Mode / Error";
+    }
+}
+
+function processData(data) {
+    items = data;
+    items.forEach(item => {
+        item._searchStr = (
+            (item["item no"]||"") + " " +
+            (item["part no"]||"") + " " +
+            (item["description"]||"") + " " +
+            (item["category"]||"") + " " +
+            (item["qty"]||"")
+        ).toLowerCase();
+    });
+    filteredItems = items; 
+    els.status.textContent = `Ready: ${items.length} Records`;
+    render();
+}
+
+/* =========================================
+   RENDERING
+   ========================================= */
+function display(list, startIndex) {
+    els.tbody.textContent = "";
+    const frag = document.createDocumentFragment();
+    list.forEach((r, i) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${startIndex + i + 1}</td>
+            <td>${r["item no"] || ""}</td>
+            <td>${r["part no"] || ""}</td>
+            <td>${r["description"] || ""}</td>
+            <td>${r["category"] || ""}</td>
+            <td>${r["qty"] || ""}</td>
+        `;
+        frag.appendChild(tr);
+    });
+    els.tbody.appendChild(frag);
+}
+
+function render() {
+    const q = els.search.value.toLowerCase().trim();
+    const words = q ? q.split(/\s+/) : [];
+    
+    if (!words.length) {
+        filteredItems = items;
+    } else {
+        filteredItems = items.filter(r => {
+            return words.every(w => r._searchStr.includes(w));
+        });
+    }
+
+    const totalPages = Math.max(1, Math.ceil(filteredItems.length / perPage));
+    currentPage = Math.min(currentPage, totalPages);
+    const start = (currentPage - 1) * perPage;
+
+    display(filteredItems.slice(start, start + perPage), start);
+    
+    els.pageInfo.textContent = `Page ${currentPage} / ${totalPages} (${filteredItems.length})`;
+    els.prevBtn.disabled = currentPage === 1;
+    els.nextBtn.disabled = currentPage === totalPages;
+}
+
+window.jumpToPage = () => {
+    const p = +document.getElementById('jumpPage').value;
+    if (p > 0) { currentPage = p; render(); }
 };
 
-qrClose.onclick = ()=>{
-  if(scanner) scanner.stop();
-  qrBackdrop.style.display="none";
+/* =========================================
+   EVENT LISTENERS
+   ========================================= */
+els.search.oninput = () => { currentPage = 1; render(); };
+document.getElementById('btn-clear').onclick = () => { els.search.value = ""; currentPage = 1; render(); };
+els.prevBtn.onclick = () => { if(currentPage > 1) { currentPage--; render(); }};
+els.nextBtn.onclick = () => { currentPage++; render(); };
+document.getElementById('btn-refresh').onclick = () => loadData(true);
+
+document.getElementById("btn-add").onclick = () => window.open("https://docs.google.com/forms/d/e/1FAIpQLSdYtCErU2QugovcnGLHkPOd_G0owZKzYadJdXXgaxwa9ZGegg/viewform", "_blank");
+
+document.getElementById("btn-google").onclick = () => {
+    if(!els.search.value) return;
+    window.open("https://www.google.com/search?q=" + encodeURIComponent(els.search.value), "_blank");
 };
 
-/* ===== THEME ===== */
-darkToggle.checked = localStorage.dark==="1";
-compactToggle.checked = localStorage.compact==="1";
-document.body.classList.toggle("dark", darkToggle.checked);
-document.body.classList.toggle("compact", compactToggle.checked);
-
-darkToggle.onchange = ()=>{
-  document.body.classList.toggle("dark", darkToggle.checked);
-  localStorage.dark = darkToggle.checked?"1":"";
-};
-compactToggle.onchange = ()=>{
-  document.body.classList.toggle("compact", compactToggle.checked);
-  localStorage.compact = compactToggle.checked?"1":"";
+document.getElementById("btn-lens").onclick = () => {
+    window.location.href = "intent://search/#Intent;scheme=googleapp;package=com.google.android.googlequicksearchbox;end";
 };
 
-btnRefresh.onclick = load;
+document.getElementById("btn-send").onclick = () => {
+    const val = els.search.value.trim();
+    if (!val) return;
+    fetch(SYNC_URL + "?write=" + encodeURIComponent(val))
+        .then(() => alert("Sent to Laptop ✔"))
+        .catch(() => alert("Failed to send"));
+};
 
-load();
+document.getElementById('btn-sites').onclick = (e) => {
+    e.stopPropagation();
+    els.siteMenu.classList.toggle('open');
+};
+document.addEventListener('click', (e) => {
+    if(!e.target.closest('.site-dropdown-container')) els.siteMenu.classList.remove('open');
+});
+els.siteMenu.onclick = (e) => {
+    const q = els.search.value.trim();
+    if(!q || !e.target.dataset.site) return;
+    let url = "";
+    switch (e.target.dataset.site) {
+        case "partsouq": url = "https://partsouq.com/en/search/all?q=" + encodeURIComponent(q); break;
+        case "spareto": url = "https://spareto.com/products?keywords=" + encodeURIComponent(q); break;
+        case "sumarauto": url = "https://www.sumarauto.com/"; break;
+        case "fitin-google": url = "https://www.google.com/search?q=" + encodeURIComponent("site:fitinpart.sg " + q); break;
+    }
+    window.open(url, "_blank");
+};
+
+document.getElementById('btn-export').onclick = () => {
+  if (!filteredItems.length) { alert("No data matches current search."); return; }
+  const headers = ["Item No", "Part No", "Description", "Category", "Qty"];
+  const csvContent = [
+    headers.join(","),
+    ...filteredItems.map(row => [
+      `"=""${(row["item no"]||"").replace(/"/g, '""')}"""`, 
+      `"=""${(row["part no"]||"").replace(/"/g, '""')}"""`,
+      `"${(row["description"]||"").replace(/"/g, '""')}"`,
+      `"${(row["category"]||"").replace(/"/g, '""')}"`,
+      `"${(row["qty"]||"").replace(/"/g, '""')}"`
+    ].join(","))
+  ].join("\n");
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.setAttribute("href", url);
+  link.setAttribute("download", `spare_parts_export_${new Date().toISOString().slice(0,10)}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
+els.tbody.onclick = (e) => {
+    const cell = e.target.closest("td");
+    if (!cell) return;
+    const text = cell.textContent.trim();
+    if (text.length < 3) return;
+    els.search.value = text;
+    currentPage = 1; 
+    render();
+    setTimeout(() => {
+        Array.from(els.tbody.querySelectorAll("td")).forEach(c => {
+            if(c.textContent === text) {
+                c.classList.add("cell-highlight");
+                setTimeout(() => c.classList.remove("cell-highlight"), 1000);
+            }
+        });
+    }, 50);
+};
+
+if (!/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+    setInterval(async () => {
+        if (!autoReadEnabled) return;
+        try {
+            const res = await fetch(SYNC_URL + "?read=latest&_=" + Date.now(), { cache: "no-store" });
+            const data = await res.json();
+            if (data && data.value && data.row !== lastRowId) {
+                lastRowId = data.row;
+                els.search.value = data.value;
+                currentPage = 1;
+                render();
+                autoReadEnabled = false; 
+                document.getElementById('readToggle').checked = false;
+                els.readLabel.textContent = "Read OFF";
+                els.readLabel.style.color = "var(--text-muted)";
+            }
+        } catch(e) { console.warn("Sync err", e); }
+    }, 3000);
+}
+
+/* =========================================
+   COMMON SCANNER FUNCTIONS
+   ========================================= */
+async function closeAllScanners() {
+    if(qrScanner) {
+        try { if(qrScanner.isScanning) await qrScanner.stop(); qrScanner.clear(); } catch(e) { }
+        qrScanner = null;
+    }
+    if(ocrStream) {
+        try { ocrStream.getTracks().forEach(t => t.stop()); } catch(e){}
+        ocrStream = null;
+    }
+    isOcrActive = false; isRecognizing = false;
+    els.qrBackdrop.style.display = 'none'; torchOn = false; els.ocrLoading.style.display = 'none';
+    document.querySelectorAll('.ocr-guide-box').forEach(el => el.classList.remove('scan-success'));
+}
+document.getElementById('qr-close').onclick = closeAllScanners;
+
+/* =========================================
+   LIBRARY LOADER
+   ========================================= */
+async function loadQRLib() {
+    if(html5QrcodeLoaded) return;
+    return new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = "https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js";
+        s.onload = () => { html5QrcodeLoaded = true; resolve(); };
+        s.onerror = reject;
+        document.head.appendChild(s);
+    });
+}
+
+/* =========================================
+   QR SCANNER LOGIC (WITH PRO UI)
+   ========================================= */
+document.getElementById('btn-scan').onclick = async () => {
+    await closeAllScanners(); 
+    els.qrBackdrop.style.display = 'flex'; els.modalTitle.textContent = "QR / Barcode Scanner";
+    
+    els.qrView.style.display = 'block'; 
+    els.ocrReader.style.display = 'none';
+    
+    els.qrBtns.style.display = 'block'; els.ocrBtns.style.display = 'none'; scanLock = false;
+    try {
+        await loadQRLib(); qrScanner = new Html5Qrcode("qr-reader");
+        await qrScanner.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 } }, (decodedText) => {
+            if (scanLock) return; scanLock = true;
+            beep.play().catch(()=>{}); if(navigator.vibrate) navigator.vibrate(200);
+            els.search.value = decodedText; currentPage = 1; render(); closeAllScanners();
+        }, () => {});
+    } catch(e) { alert("Camera Error (QR): " + e); closeAllScanners(); }
+};
+document.getElementById('btn-flash').onclick = async () => { if(!qrScanner) return; torchOn = !torchOn; try { await qrScanner.applyVideoConstraints({ advanced: [{ torch: torchOn }] }); } catch(e) { alert("Flash not supported"); } };
+document.getElementById('btn-photo').onclick = () => {
+    closeAllScanners(); const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*';
+    input.onchange = async (e) => {
+        if(!e.target.files[0]) return;
+        try { await loadQRLib(); const instance = new Html5Qrcode("qr-reader"); const res = await instance.scanFile(e.target.files[0], true); els.search.value = res; render(); } catch { alert("No code found"); }
+    }; input.click();
+};
+
+/* =========================================
+   OCR (TEXT SCANNER) AUTOMATIC LOGIC
+   ========================================= */
+async function initTesseractWorker() {
+    if(ocrWorker) return ocrWorker;
+    if(!window.Tesseract) { await new Promise((resolve) => { const s = document.createElement('script'); s.src = "https://unpkg.com/tesseract.js@2.1.0/dist/tesseract.min.js"; s.onload = resolve; document.head.appendChild(s); }); }
+    const worker = Tesseract.createWorker(); await worker.load(); await worker.loadLanguage('eng'); await worker.initialize('eng');
+    await worker.setParameters({ tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-', tessedit_pageseg_mode: '6' });
+    ocrWorker = worker; return ocrWorker;
+}
+
+document.getElementById('btn-ocr').onclick = async () => {
+    await closeAllScanners(); 
+    if (window.location.protocol === 'http:' && window.location.hostname !== 'localhost') { alert("OCR CAMERA ERROR:\nPlease use HTTPS."); return; }
+    els.qrBackdrop.style.display = 'flex'; els.modalTitle.textContent = "Text Scanner (Part Numbers)";
+    
+    els.qrView.style.display = 'none'; 
+    els.ocrReader.style.display = 'block';
+    
+    els.qrBtns.style.display = 'none'; els.ocrBtns.style.display = 'flex'; els.ocrLoading.style.display = 'flex'; 
+    try { ocrStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } }); els.ocrVideo.srcObject = ocrStream; } 
+    catch (e) { try { ocrStream = await navigator.mediaDevices.getUserMedia({ video: true }); els.ocrVideo.srcObject = ocrStream; } catch(err) { alert("Camera Access Denied."); closeAllScanners(); return; } }
+    await initTesseractWorker(); els.ocrLoading.style.display = 'none'; isOcrActive = true; requestAnimationFrame(autoScanLoop);
+};
+
+function preprocessImage(canvas) {
+    const ctx = canvas.getContext('2d'); const w = canvas.width; const h = canvas.height;
+    let imgData = ctx.getImageData(0,0,w,h); let d = imgData.data;
+    for (let i=0; i<d.length; i+=4) { const v = 0.2126*d[i] + 0.7152*d[i+1] + 0.0722*d[i+2]; d[i] = d[i+1] = d[i+2] = v; }
+    ctx.putImageData(imgData, 0, 0);
+}
+
+async function autoScanLoop() {
+    if (!isOcrActive) return;
+    if (isRecognizing) { setTimeout(() => requestAnimationFrame(autoScanLoop), 100); return; }
+    isRecognizing = true;
+    
+    try {
+        const worker = await initTesseractWorker(); const video = els.ocrVideo;
+        if (video.readyState !== video.HAVE_ENOUGH_DATA) { isRecognizing = false; requestAnimationFrame(autoScanLoop); return; }
+
+        const w = video.videoWidth; const h = video.videoHeight;
+        const cropW = w * 0.70; const cropH = h * 0.15;
+        const cropX = (w - cropW) / 2; const cropY = (h - cropH) / 2;
+        
+        const canvas = document.createElement('canvas'); canvas.width = cropW; canvas.height = cropH;
+        const ctx = canvas.getContext('2d'); ctx.drawImage(video, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+        preprocessImage(canvas);
+        
+        const { data: { text } } = await worker.recognize(canvas);
+        const cleanText = text.split(/\s+/).map(w => w.replace(/[^A-Z0-9-]/g, '')).filter(w => w.length >= 5).sort((a,b) => {
+            const aDigit = /\d/.test(a); const bDigit = /\d/.test(b);
+            if (aDigit && !bDigit) return -1; if (!aDigit && bDigit) return 1; return b.length - a.length;
+        })[0]; 
+            
+        if(cleanText && /\d/.test(cleanText)) {
+            beep.play().catch(()=>{}); if(navigator.vibrate) navigator.vibrate(200);
+            els.search.value = cleanText; currentPage = 1; render(); closeAllScanners(); return;
+        } else {
+            isRecognizing = false; setTimeout(() => requestAnimationFrame(autoScanLoop), 200);
+        }
+    } catch(e) { console.error(e); isRecognizing = false; setTimeout(() => requestAnimationFrame(autoScanLoop), 500); }
+}
+
+loadData();
 </script>
-
 </body>
 </html>
